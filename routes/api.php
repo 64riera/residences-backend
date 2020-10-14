@@ -20,14 +20,14 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 
 Route::group([
     'prefix' => 'auth',
-    'namespace'=>'App\Http\Controllers'
+    'namespace' => 'App\Http\Controllers'
 ], function () {
     Route::post('login', 'AuthController@login');
     Route::post('signup', 'AuthController@signUp');
 
     Route::group([
-      'middleware' => 'auth:api'
-    ], function() {
+        'middleware' => 'auth:api'
+    ], function () {
         Route::get('logout', 'AuthController@logout');
         Route::get('user', 'AuthController@user');
     });
