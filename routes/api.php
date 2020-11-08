@@ -14,10 +14,6 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware('auth:api')->get('/user', function (Request $request) {
-    return $request->user();
-});
-
 Route::group([
     'prefix' => 'auth',
     'namespace' => 'App\Http\Controllers'
@@ -31,4 +27,16 @@ Route::group([
         Route::get('logout', 'AuthController@logout');
         Route::get('user', 'AuthController@user');
     });
+});
+
+Route::group([
+    'middleware' => ['auth:api'],
+    'namespace' => 'App\Http\Controllers'
+], function() {
+    
+    // Users section
+    Route::get('users', 'UserController@index');
+    Route::get('user/{id}', 'UserController@getOne');
+    Route::patch('user', 'UserController@update');
+    Route::delete('user/{id}', 'UserController@destroy');
 });
