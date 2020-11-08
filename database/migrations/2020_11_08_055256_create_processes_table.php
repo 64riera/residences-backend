@@ -17,8 +17,8 @@ class CreateProcessesTable extends Migration
             $table->id();
             $table->string('name');
             $table->longText('description');
-            $table->boolean('for_everyone');
-            $table->boolean('is_active');
+            $table->boolean('for_everyone')->default(false);
+            $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
     }

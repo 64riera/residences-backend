@@ -39,4 +39,8 @@ Route::group([
     Route::get('user/{id}', 'UserController@getOne');
     Route::patch('user', 'UserController@update');
     Route::delete('user/{id}', 'UserController@destroy');
+
+    // Processes section
+    Route::get('processes', 'ProcessController@getAll');
+    Route::post('process', 'ProcessController@create');
 });
