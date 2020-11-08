@@ -8,6 +8,7 @@ use App\Models\User;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Validator;
 
 class UserController extends Controller
 {
@@ -110,6 +111,44 @@ class UserController extends Controller
         ], Config::get('constants.responses.SUCCESS_CODE'));
     }
 
+
+    /**
+     * Get data of specific user given an id
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function getOne($id)
+    {
+        $validator = Validator::make(['id' => $id], [
+            'id' => 'required|integer|min:1|exists:users,id'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => Config::get('constants.responses.FAIL_CODE'),
+                'message' => Config::get('constants.responses.FAIL_MESSAGE'),
+                'data' => $validator->errors()
+            ], Config::get('constants.responses.FAIL_CODE'));
+        }
+
+        try {
+            $user = User::find($id);
+            $user = self::validateDataAndArea($user);
+        } catch(Exception $e) {
+            return response()->json([
+                'code' => Config::get('constants.responses.INTERNAL_SERVER_ERROR_CODE'),
+                'message' => Config::get('constants.responses.FAIL_MESSAGE'),
+                'data' => $e->getMessage()
+            ], Config::get('constants.responses.INTERNAL_SERVER_ERROR_CODE'));
+        }
+
+        return response()->json([
+            'code' => Config::get('constants.responses.SUCCESS_CODE'),
+            'message' => Config::get('constants.responses.SUCCESS_MESSAGE'),
+            'data' => $user
+        ], Config::get('constants.responses.SUCCESS_CODE'));
+    }
+
     /**
      * Show the form for creating a new resource.
      *
@@ -127,17 +166,6 @@ class UserController extends Controller
      * @return \Illuminate\Http\Response
      */
     public function store(Request $request)
-    {
-        //
-    }
-
-    /**
-     * Display the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function show($id)
     {
         //
     }
