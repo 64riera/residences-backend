@@ -37,4 +37,5 @@ Route::group([
     // Users section
     Route::get('users', 'UserController@index');
     Route::get('user/{id}', 'UserController@getOne');
+    Route::patch('user', 'UserController@update');
 });

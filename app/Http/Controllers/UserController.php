@@ -150,47 +150,61 @@ class UserController extends Controller
     }
 
     /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
-    public function store(Request $request)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function edit($id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
+     * Update the specified user.
      *
      * @param  \Illuminate\Http\Request  $request
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, $id)
+    public function update(Request $request)
     {
-        //
+        $request->validate([
+            'id' => 'required|integer|min:1|exists:users,id',
+            'name' => 'string',
+            'lastName' => 'string',
+            'address' => 'string',
+            'controlNumber' => 'numeric|unique:users,control_number',
+            'areaId' => 'integer',
+            'birthdate' => 'date',
+            'isActive' => 'integer',
+            'phone' => 'numeric',
+            'visibleMail' => 'boolean',
+            'visiblePhone' => 'boolean',
+            'userType' => 'numeric|exists:type_users,id',
+            'email' => 'string|email|unique:users',
+            'password' => 'string'
+        ]);
+
+        try {
+            $user = User::find($request->id);
+            $user->name = $request->name ? $request->name : $user->name;
+            $user->last_name = $request->lastName ? $request->lastName : $user->last_name;
+            $user->address = $request->address ? $request->address : $user->address;
+            $user->control_number = $request->controlNumber ? $request->controlNumber : $user->control_number;
+            $user->area_id = $request->areaId ? $request->areaId : $user->area_id;
+            $user->birthdate = $request->birthdate ? $request->birthdate : $user->birthdate;
+            $user->is_active = $request->isActive ? $request->isActive : $user->is_active;
+            $user->phone = $request->phone ? $request->phone : $user->phone;
+            $user->visible_mail = $request->visibleMail ? $request->visibleMail : $user->visible_mail;
+            $user->visible_phone = $request->visiblePhone ? $request->visiblePhone : $user->visible_phone;
+            $user->user_type = $request->userType ? $request->userType : $user->user_type;
+            $user->email = $request->email ? $request->email : $user->email;
+            $user->password = $request->password ? bcrypt($request->password) : $user->password;
+            $user->save();
+            $user = self::validateDataAndArea($user);
+        } catch (Exception $e) {
+            return response()->json([
+                'code' => Config::get('constants.responses.INTERNAL_SERVER_ERROR_CODE'),
+                'message' => Config::get('constants.responses.FAIL_MESSAGE'),
+                'data' => $e->getMessage()
+            ], Config::get('constants.responses.INTERNAL_SERVER_ERROR_CODE'));
+        }
+
+        return response()->json([
+            'code' => Config::get('constants.responses.SUCCESS_CODE'),
+            'message' => Config::get('constants.responses.SUCCESS_MESSAGE'),
+            'data' => $user
+        ], Config::get('constants.responses.SUCCESS_CODE'));
     }
 
     /**
