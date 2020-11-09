@@ -64,7 +64,7 @@ class ProcessController extends Controller
                 }
             }
 
-            $processes->orderBy(
+            $processes = $processes->orderBy(
                 'id',
                 'DESC'
             )->get();
@@ -127,15 +127,41 @@ class ProcessController extends Controller
     }
 
     /**
-     * Update the specified resource in storage.
+     * Update the specified process in storage.
      *
      * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, $id)
+    public function update(Request $request)
     {
-        //
+        $request->validate([
+            'id' => 'required|integer|min:1|exists:processes,id',
+            'name' => 'string|min:1',
+            'description' => 'string|min:1',
+            'forEveryone' => 'boolean',
+            'isActive' => 'boolean'
+        ]);
+
+        try {
+            $process = Process::find($request->id);
+            $process->name = $request->name ? $request->name : $process->name;
+            $process->description = $request->description ? $request->description : $process->description;
+            $process->for_everyone = $request->forEveryone ? $request->forEveryone : $process->for_everyone;
+            $process->is_active = $request->isActive ? $request->isActive : $process->is_active;
+            $process->save();
+        } catch(Exception $e) {
+            return response()->json([
+                'code' => Config::get('constants.responses.INTERNAL_SERVER_ERROR_CODE'),
+                'message' => Config::get('constants.responses.FAIL_MESSAGE'),
+                'data' => $e->getMessage()
+            ], Config::get('constants.responses.INTERNAL_SERVER_ERROR_CODE'));
+        }
+
+        return response()->json([
+            'code' => Config::get('constants.responses.SUCCESS_CODE'),
+            'message' => Config::get('constants.responses.SUCCESS_MESSAGE'),
+            'data' => $process
+        ], Config::get('constants.responses.SUCCESS_CODE'));
     }
 
     /**

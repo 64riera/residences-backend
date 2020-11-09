@@ -43,4 +43,5 @@ Route::group([
     // Processes section
     Route::get('processes', 'ProcessController@getAll');
     Route::post('process', 'ProcessController@create');
+    Route::patch('process', 'ProcessController@update');
 });
