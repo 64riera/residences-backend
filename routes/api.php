@@ -44,4 +44,5 @@ Route::group([
     Route::get('processes', 'ProcessController@getAll');
     Route::post('process', 'ProcessController@create');
     Route::patch('process', 'ProcessController@update');
+    Route::delete('process/{id}', 'ProcessController@destroy');
 });

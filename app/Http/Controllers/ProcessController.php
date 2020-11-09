@@ -6,6 +6,7 @@ use App\Models\Process;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Validator;
 
 class ProcessController extends Controller
 {
@@ -172,6 +173,32 @@ class ProcessController extends Controller
      */
     public function destroy($id)
     {
-        //
+        $validator = Validator::make(['id' => $id],[
+            'id' => 'required|integer|min:1|exists:processes,id'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => Config::get('constants.responses.FAIL_CODE'),
+                'message' => Config::get('constants.responses.FAIL_MESSAGE'),
+                'data' => $validator->errors()
+            ], Config::get('constants.responses.SUCCESS_CODE'));
+        }
+
+        try {
+            Process::destroy($id);
+        } catch(Exception $e) {
+            return response()->json([
+                'code' => Config::get('constants.responses.INTERNAL_SERVER_ERROR_CODE'),
+                'message' => Config::get('constants.responses.FAIL_MESSAGE'),
+                'data' => $e->getMessage()
+            ], Config::get('constants.responses.INTERNAL_SERVER_ERROR_CODE'));
+        }
+
+        return response()->json([
+            'code' => Config::get('constants.responses.SUCCESS_CODE'),
+            'message' => Config::get('constants.responses.SUCCESS_MESSAGE'),
+            'data' => []
+        ], Config::get('constants.responses.SUCCESS_CODE'));
     }
 }
