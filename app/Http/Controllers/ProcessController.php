@@ -3,13 +3,19 @@
 namespace App\Http\Controllers;
 
 use App\Models\Process;
+use App\Models\Step;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
 class ProcessController extends Controller
 {
+
+    /* CONSTANTS */
+    const ACTIVE_STATUS = 1;
+
     /**
      * Get all the processes storaged
      *
@@ -199,6 +205,68 @@ class ProcessController extends Controller
             'code' => Config::get('constants.responses.SUCCESS_CODE'),
             'message' => Config::get('constants.responses.SUCCESS_MESSAGE'),
             'data' => []
+        ], Config::get('constants.responses.SUCCESS_CODE'));
+    }
+
+    /**
+     * Add steps to a specified process
+     *
+     * @param  Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function addSteps(Request $request)
+    {
+        $request->validate([
+            'processId' => 'required|integer|min:1|exists:processes,id',
+            'steps' => 'required|array',
+            'steps.*.title' => 'required|string|min:1',
+            'steps.*.description' => 'required|string|min:1',
+            'steps.*.instructions' => 'required|string|min:1',
+            'steps.*.includesFile' => 'required|boolean',
+            'steps.*.isActive' => 'boolean',
+            'steps.*.order' => 'required|integer|min:1'
+        ]);
+
+        try {
+            DB::transaction(function() use ($request) {
+
+                Step::where(
+                    'process_id',
+                    $request->processId
+                )->delete();
+
+                foreach ($request->steps as $reqStep) {
+                    $step = new Step;
+                    $step->title = $reqStep['title'];
+                    $step->description = $reqStep['description'];
+                    $step->instructions = $reqStep['instructions'];
+                    $step->includes_file = $reqStep['includesFile'];
+                    $step->is_active = !empty($reqStep['isActive']) ? $reqStep['isActive'] : self::ACTIVE_STATUS;
+                    $step->order = $reqStep['order'];
+                    $step->process_id = $request->processId;
+                    $step->save();
+                } 
+            });
+
+            $steps = Step::where(
+                'process_id',
+                $request->processId
+            )->orderBy(
+                'order',
+                'ASC'
+            )->get();
+        } catch(Exception $e) {
+            return response()->json([
+                'code' => Config::get('constants.responses.INTERNAL_SERVER_ERROR_CODE'),
+                'message' => Config::get('constants.responses.FAIL_MESSAGE'),
+                'data' => $e->getMessage()
+            ], Config::get('constants.responses.INTERNAL_SERVER_ERROR_CODE'));
+        }
+
+        return response()->json([
+            'code' => Config::get('constants.responses.SUCCESS_CODE'),
+            'message' => Config::get('constants.responses.SUCCESS_MESSAGE'),
+            'data' => $steps
         ], Config::get('constants.responses.SUCCESS_CODE'));
     }
 }
