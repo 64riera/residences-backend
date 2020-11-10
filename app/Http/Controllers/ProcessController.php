@@ -269,4 +269,47 @@ class ProcessController extends Controller
             'data' => $steps
         ], Config::get('constants.responses.SUCCESS_CODE'));
     }
+
+    /**
+     * Get steps to a specified process
+     *
+     * @param  Integer  $processId
+     * @return \Illuminate\Http\Response
+     */
+    public function getSteps($processId)
+    {
+        $validator = Validator::make(['processId' => $processId], [
+            'processId' => 'required|integer|min:1|exists:processes,id'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => Config::get('constants.responses.FAIL_CODE'),
+                'message' => Config::get('constants.responses.FAIL_MESSAGE'),
+                'data' => $validator->errors()
+            ], Config::get('constants.responses.FAIL_CODE'));
+        }
+
+        try {
+            $steps = Step::where(
+                'process_id',
+                $processId
+            )->orderBy(
+                'order',
+                'ASC'
+            )->get();
+        } catch(Exception $e) {
+            return response()->json([
+                'code' => Config::get('constants.responses.INTERNAL_SERVER_ERROR_CODE'),
+                'message' => Config::get('constants.responses.FAIL_MESSAGE'),
+                'data' => $e->getMessage()
+            ], Config::get('constants.responses.INTERNAL_SERVER_ERROR_CODE'));
+        }
+
+        return response()->json([
+            'code' => Config::get('constants.responses.SUCCESS_CODE'),
+            'message' => Config::get('constants.responses.SUCCESS_MESSAGE'),
+            'data' => $steps
+        ], Config::get('constants.responses.SUCCESS_CODE'));
+    }
 }
