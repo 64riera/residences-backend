@@ -45,4 +45,10 @@ Route::group([
     Route::post('process', 'ProcessController@create');
     Route::patch('process', 'ProcessController@update');
     Route::delete('process/{id}', 'ProcessController@destroy');
+
+    // Steps section
+    Route::get('step/{stepId}', 'StepController@getOne');
+    Route::get('process/{processId}/steps', 'ProcessController@getSteps');
+    Route::post('process/steps', 'ProcessController@addSteps');
+    Route::patch('step', 'StepController@updateOne');
 });
