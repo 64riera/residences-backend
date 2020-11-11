@@ -88,4 +88,41 @@ class StepController extends Controller
             'data' => $step
         ], Config::get('constants.responses.SUCCESS_CODE'));
     }
+
+    /**
+     * Updates specified step
+     *
+     * @param  Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function deleteOne($id)
+    {
+        $validator = Validator::make(['id' => $id], [
+            'id' => 'required|integer|min:1|exists:steps,id'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => Config::get('constants.responses.FAIL_CODE'),
+                'message' => Config::get('constants.responses.FAIL_MESSAGE'),
+                'data' => $validator->errors()
+            ], Config::get('constants.responses.FAIL_CODE'));
+        }
+
+        try {
+            Step::destroy($id);
+        } catch(Exception $e) {
+            return response()->json([
+                'code' => Config::get('constants.responses.INTERNAL_SERVER_ERROR_CODE'),
+                'message' => Config::get('constants.responses.FAIL_MESSAGE'),
+                'data' => $e->getMessage()
+            ], Config::get('constants.responses.INTERNAL_SERVER_ERROR_CODE'));
+        }
+
+        return response()->json([
+            'code' => Config::get('constants.responses.SUCCESS_CODE'),
+            'message' => Config::get('constants.responses.SUCCESS_MESSAGE'),
+            'data' => []
+        ], Config::get('constants.responses.SUCCESS_CODE'));
+    }
 }

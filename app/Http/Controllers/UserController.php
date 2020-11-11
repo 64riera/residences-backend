@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActiveUserProcess;
 use App\Models\AdminArea;
 use App\Models\Career;
 use App\Models\User;
@@ -12,6 +13,10 @@ use Illuminate\Support\Facades\Validator;
 
 class UserController extends Controller
 {
+
+    /* CONSTANTS */
+    const ACTIVE_VALUE = 1;
+
     /**
      * Display a listing of the resource.
      *
@@ -270,5 +275,183 @@ class UserController extends Controller
         }
 
         return $user;
+    }
+
+    /**
+     * Adds an active process to a user
+     *
+     * @param  object $user
+     * @return \Illuminate\Http\Response
+     */
+    public function addActiveProcess(Request $request)
+    {
+        $request->validate([
+            'userId' => 'required|integer|min:1|exists:users,id',
+            'processId' => 'required|integer|min:1|exists:processes,id'
+        ]);
+
+        $finalData = [];
+
+        try {
+
+            $registeredActiveProcess = ActiveUserProcess::where(
+                'user_id',
+                $request->userId
+            )->where(
+                'process_id',
+                $request->processId
+            )->first();
+
+            // Verify if user has active that process
+            if (!empty($registeredActiveProcess)) {
+                // Verify if the registered process was disabled
+                if (!$registeredActiveProcess->is_active) {
+                    $registeredActiveProcess->is_active = self::ACTIVE_VALUE;
+                    $registeredActiveProcess->save();
+                    $finalData = $registeredActiveProcess;
+                } else {
+                    // The user already has that process
+                    return response()->json([
+                        'code' => Config::get('constants.responses.FAIL_CODE'),
+                        'message' => "User already has that active process",
+                        'data' => []
+                    ], Config::get('constants.responses.FAIL_CODE'));
+                }
+            } else {
+                $activeProcess = new ActiveUserProcess();
+                $activeProcess->user_id = $request->userId;
+                $activeProcess->process_id = $request->processId;
+                $activeProcess->save();
+                $finalData = $activeProcess;
+            }
+
+        } catch(Exception $e) {
+            return response()->json([
+                'code' => Config::get('constants.responses.INTERNAL_SERVER_ERROR_CODE'),
+                'message' => Config::get('constants.responses.FAIL_MESSAGE'),
+                'data' => $e->getMessage()
+            ], Config::get('constants.responses.INTERNAL_SERVER_ERROR_CODE'));
+        }
+
+        return response()->json([
+            'code' => Config::get('constants.responses.SUCCESS_CODE'),
+            'message' => Config::get('constants.responses.SUCCESS_MESSAGE'),
+            'data' => $finalData
+        ], Config::get('constants.responses.SUCCESS_CODE'));
+    }
+
+    /**
+     * Returns the active processes of a user
+     *
+     * @param  object $user
+     * @return \Illuminate\Http\Response
+     */
+    public function getActiveProcesses($userId)
+    {
+        $validator = Validator::make(['idUser' => $userId], [
+            'idUser' => 'required|integer|min:1|exists:users,id'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => Config::get('constants.responses.FAIL_CODE'),
+                'message' => Config::get('constants.responses.FAIL_MESSAGE'),
+                'data' => $validator->errors()
+            ], Config::get('constants.responses.FAIL_CODE'));
+        }
+
+        try {
+            $activeProcesses = ActiveUserProcess::select(
+                'active_user_processes.*',
+                'users.name as user_name',
+                'users.last_name as user_last_name',
+                'processes.name as process_name'
+            )->where(
+                'user_id',
+                $userId
+            )->leftJoin(
+                'users',
+                'users.id',
+                '=',
+                'active_user_processes.user_id'
+            )->leftJoin(
+                'processes',
+                'processes.id',
+                '=',
+                'active_user_processes.process_id'
+            )->orderBy(
+                'active_user_processes.created_at',
+                'ASC'
+            )->get();
+        } catch (Exception $e) {
+            return response()->json([
+                'code' => Config::get('constants.responses.INTERNAL_SERVER_ERROR_CODE'),
+                'message' => Config::get('constants.responses.FAIL_MESSAGE'),
+                'data' => $e->getMessage()
+            ], Config::get('constants.responses.INTERNAL_SERVER_ERROR_CODE'));
+        }
+
+        return response()->json([
+            'code' => Config::get('constants.responses.SUCCESS_CODE'),
+            'message' => Config::get('constants.responses.SUCCESS_MESSAGE'),
+            'data' => $activeProcesses
+        ], Config::get('constants.responses.SUCCESS_CODE'));
+    }
+
+    /**
+     * Deletes an active process of user
+     *
+     * @param  object $user
+     * @return \Illuminate\Http\Response
+     */
+    public function deleteActiveProcess($userId, $processId)
+    {
+        $validator = Validator::make([
+            'userId' => $userId,
+            'processId' => $processId
+        ], [
+            'userId' => 'required|integer|min:1|exists:users,id',
+            'processId' => 'required|integer|min:1|exists:processes,id'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => Config::get('constants.responses.FAIL_CODE'),
+                'message' => Config::get('constants.responses.FAIL_MESSAGE'),
+                'data' => $validator->errors()
+            ], Config::get('constants.responses.FAIL_CODE'));
+        }
+
+        try {
+            $registeredActiveProcess = ActiveUserProcess::where(
+                'user_id',
+                $userId
+            )->where(
+                'process_id',
+                $processId
+            )->first();
+
+            if (empty($registeredActiveProcess)) {
+                return response()->json([
+                    'code' => Config::get('constants.responses.FAIL_CODE'),
+                    'message' => "User hasn't that active process",
+                    'data' => []
+                ], Config::get('constants.responses.FAIL_CODE'));
+            }
+
+            $registeredActiveProcess->delete();
+        } catch(Exception $e) {
+            return response()->json([
+                'code' => Config::get('constants.responses.INTERNAL_SERVER_ERROR_CODE'),
+                'message' => Config::get('constants.responses.FAIL_MESSAGE'),
+                'data' => $e->getMessage()
+            ], Config::get('constants.responses.INTERNAL_SERVER_ERROR_CODE'));
+        }
+
+        return response()->json([
+            'code' => Config::get('constants.responses.SUCCESS_CODE'),
+            'message' => Config::get('constants.responses.SUCCESS_MESSAGE'),
+            'data' => []
+        ], Config::get('constants.responses.SUCCESS_CODE'));
     }
 }
