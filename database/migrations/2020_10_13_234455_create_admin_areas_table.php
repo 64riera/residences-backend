@@ -17,7 +17,7 @@ class CreateAdminAreasTable extends Migration
             $table->id();
             $table->string('name');
             $table->longText('description')->nullable();
-            $table->boolean('is_active');
+            $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
     }

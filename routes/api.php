@@ -58,10 +58,24 @@ Route::group([
 
     // Careers section
     Route::post('career', 'CareerController@create');
+
+    // Admin areas section
+    Route::post('area', 'AreaController@create');
+
+    // Type users section
+    Route::post('type-user', 'TypeUserController@create');
 });
 
 Route::group([
     'namespace' => 'App\Http\Controllers'
 ], function() {
+
+    // Careers section
     Route::get('careers', 'CareerController@getAll');
+
+    // Admiin area section
+    Route::get('areas', 'AreaController@getAll');
+
+    // Type users section
+    Route::get('type-users', 'TypeUserController@getAll');
 });
