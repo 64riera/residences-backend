@@ -35,7 +35,7 @@ class AuthController extends Controller
         $user->last_name = $request->last_name;
         $user->control_number = $request->control_number;
         $user->area_id = $request->area_id;
-        $user->birthdate = $request->birthdate;
+        $user->birthdate = Carbon::parse($request->birthdate);
         $user->is_active = $request->is_active;
         $user->phone = $request->phone;
         $user->visible_mail = $request->visible_mail;

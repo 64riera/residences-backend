@@ -55,4 +55,13 @@ Route::group([
     Route::post('process/steps', 'ProcessController@addSteps');
     Route::patch('step', 'StepController@updateOne');
     Route::delete('step/{id}', 'StepController@deleteOne');
+
+    // Careers section
+    Route::post('career', 'CareerController@create');
+});
+
+Route::group([
+    'namespace' => 'App\Http\Controllers'
+], function() {
+    Route::get('careers', 'CareerController@getAll');
 });

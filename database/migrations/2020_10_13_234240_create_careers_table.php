@@ -17,8 +17,8 @@ class CreateCareersTable extends Migration
             $table->id();
             $table->string('name');
             $table->longText('description')->nullable();
-            $table->boolean('is_active');
-            $table->integer('modality_id');
+            $table->boolean('is_active')->default(true);
+            $table->integer('modality_id')->default(1);
             $table->timestamps();
         });
     }
