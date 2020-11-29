@@ -58,6 +58,7 @@ Route::group([
     Route::patch('step', 'StepController@updateOne');
     Route::delete('step/{id}', 'StepController@deleteOne');
     Route::get('process/{processId}/student/steps', 'ProcessController@getStudentSteps');
+    Route::get('process/{processId}/admin/steps', 'ProcessController@getAdminSteps');
 
     // Careers section
     Route::post('career', 'CareerController@create');

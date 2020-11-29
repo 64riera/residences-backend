@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Process;
 use App\Models\Step;
 use App\Models\UserStep;
+use App\Models\User;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
@@ -340,7 +341,7 @@ class ProcessController extends Controller
         ], Config::get('constants.responses.SUCCESS_CODE'));
     }
 
-        /**
+    /**
      * Get steps to a specified process
      *
      * @param  Integer  $processId
@@ -422,6 +423,81 @@ class ProcessController extends Controller
             $finalBody->percentageOfProgress = $totalStepsOfProcessCount > 0 && $totalDoneUserStepsCount > 0 ? ceil(($totalDoneUserStepsCount * 100) / $totalStepsOfProcessCount) : 0; 
 
         } catch(Exception $e) {
+            return response()->json([
+                'code' => Config::get('constants.responses.INTERNAL_SERVER_ERROR_CODE'),
+                'message' => Config::get('constants.responses.FAIL_MESSAGE'),
+                'data' => $e->getMessage()
+            ], Config::get('constants.responses.INTERNAL_SERVER_ERROR_CODE'));
+        }
+
+        return response()->json([
+            'code' => Config::get('constants.responses.SUCCESS_CODE'),
+            'message' => Config::get('constants.responses.SUCCESS_MESSAGE'),
+            'data' => $finalBody
+        ], Config::get('constants.responses.SUCCESS_CODE'));
+    }
+
+    /**
+     * Get steps to a specified process (Progress, tracking for admins)
+     *
+     * @param  Integer  $processId
+     * @return \Illuminate\Http\Response
+     */
+    public static function getAdminSteps(Request $request, $processId)
+    {
+        $validator = Validator::make(['processId' => $processId], [
+            'processId' => 'required|integer|min:1|exists:processes,id'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => Config::get('constants.responses.FAIL_CODE'),
+                'message' => Config::get('constants.responses.FAIL_MESSAGE'),
+                'data' => $validator->errors()
+            ], Config::get('constants.responses.FAIL_CODE'));
+        }
+
+        try {
+            $finalBody = new stdClass;
+            $finalBody->students = [];
+            $finalBody->process = null;
+    
+            $process = Process::find($processId);
+            $totalCountSteps = Step::where(
+                'process_id',
+                $processId
+            )->count();
+    
+            $stepsIdsOfProcess = Step::where(
+                'process_id',
+                $processId
+            )->pluck('id');
+    
+            $usersWithStepsDoneIds = UserStep::whereIn(
+                'step_id',
+                $stepsIdsOfProcess
+            )->where(
+                'status',
+                self::DONE_STATUS
+            )->pluck('user_id');
+    
+            $usersDetails = User::whereIn(
+                'id',
+                $usersWithStepsDoneIds
+            )->get();
+    
+            foreach ($usersDetails as $userDetail) {
+                $userStepsCountDone = UserStep::where(
+                    'user_id',
+                    $userDetail->id
+                )->count();
+                $userDetail->stepsCountDone = $userStepsCountDone;
+                $userDetail->percentageOfProgress = ceil( ($userStepsCountDone * 100) / $totalCountSteps );
+            }
+    
+            $finalBody->process = $process;
+            $finalBody->students = $usersDetails;
+        } catch (Exception $e) {
             return response()->json([
                 'code' => Config::get('constants.responses.INTERNAL_SERVER_ERROR_CODE'),
                 'message' => Config::get('constants.responses.FAIL_MESSAGE'),
