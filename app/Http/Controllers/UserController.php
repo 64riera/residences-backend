@@ -270,7 +270,7 @@ class UserController extends Controller
         // Validates user type
         if ($user->user_type == Config::get('constants.codes.ADMIN')) {
             $user->area = AdminArea::find($user->area_id);
-        } else if ($user->user_type == Config::get('constants.codes.ADMIN')) {
+        } else if ($user->user_type == Config::get('constants.codes.STUDENT')) {
             $user->area = Career::find($user->area_id);
         }
 

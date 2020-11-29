@@ -438,6 +438,107 @@ class ProcessController extends Controller
     }
 
     /**
+     * Get steps to a specified process
+     *
+     * @param  Integer  $processId
+     * @param  Integer  $studentId
+     * @return \Illuminate\Http\Response
+     */
+    public function getStudentStepsForAdmin($processId, $studentId)
+    {
+        $validator = Validator::make(['processId' => $processId], [
+            'processId' => 'required|integer|min:1|exists:processes,id'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => Config::get('constants.responses.FAIL_CODE'),
+                'message' => Config::get('constants.responses.FAIL_MESSAGE'),
+                'data' => $validator->errors()
+            ], Config::get('constants.responses.FAIL_CODE'));
+        }
+
+        try {
+            $steps = Step::where(
+                'process_id',
+                $processId
+            )->orderBy(
+                'order',
+                'ASC'
+            )->get();
+
+            $totalStepsOfProcessCount = Step::where(
+                'process_id',
+                $processId
+            )->orderBy(
+                'order',
+                'ASC'
+            )->count();
+
+            $idStepsOfProcess = Step::where(
+                'process_id',
+                $processId
+            )->orderBy(
+                'order',
+                'ASC'
+            )->pluck('id');
+
+            $totalDoneUserStepsCount = UserStep::where(
+                'user_id',
+                $studentId
+            )->whereIn(
+                'step_id',
+                $idStepsOfProcess
+            )->where(
+                'status',
+                self::DONE_STATUS
+            )->count();
+
+            $firstPendient = false;
+            foreach ($steps as $step) {
+                $tmpDoneStep = UserStep::where(
+                    'user_id',
+                    $studentId
+                )->where(
+                    'step_id',
+                    $step->id
+                )->first();
+
+                $step->currentProgress = $tmpDoneStep;
+                if (empty($tmpDoneStep) && !$firstPendient) {
+                    $step->blocked = false;
+                    $firstPendient = true; 
+                } else {
+                    $step->blocked = true;
+                }
+            }
+
+            $studentInfo = User::find($studentId);
+            $studentInfo = UserController::validateDataAndArea($studentInfo);
+
+            $finalBody = new stdClass;
+            $finalBody->student = $studentInfo;
+            $finalBody->steps = $steps;
+            $finalBody->totalStepsOfProcess = $totalStepsOfProcessCount;
+            $finalBody->doneStepsCount = $totalDoneUserStepsCount;
+            $finalBody->percentageOfProgress = $totalStepsOfProcessCount > 0 && $totalDoneUserStepsCount > 0 ? ceil(($totalDoneUserStepsCount * 100) / $totalStepsOfProcessCount) : 0; 
+
+        } catch(Exception $e) {
+            return response()->json([
+                'code' => Config::get('constants.responses.INTERNAL_SERVER_ERROR_CODE'),
+                'message' => Config::get('constants.responses.FAIL_MESSAGE'),
+                'data' => $e->getMessage()
+            ], Config::get('constants.responses.INTERNAL_SERVER_ERROR_CODE'));
+        }
+
+        return response()->json([
+            'code' => Config::get('constants.responses.SUCCESS_CODE'),
+            'message' => Config::get('constants.responses.SUCCESS_MESSAGE'),
+            'data' => $finalBody
+        ], Config::get('constants.responses.SUCCESS_CODE'));
+    }
+
+    /**
      * Get steps to a specified process (Progress, tracking for admins)
      *
      * @param  Integer  $processId
@@ -487,6 +588,7 @@ class ProcessController extends Controller
             )->get();
     
             foreach ($usersDetails as $userDetail) {
+                $userDetail = UserController::validateDataAndArea($usersDetails[0]);
                 $userStepsCountDone = UserStep::where(
                     'user_id',
                     $userDetail->id
