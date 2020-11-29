@@ -38,12 +38,14 @@ Route::group([
     Route::get('users', 'UserController@index');
     Route::get('user/{id}', 'UserController@getOne');
     Route::patch('user', 'UserController@update');
+    Route::post('user/step', 'UserStepController@create');
     Route::delete('user/{id}', 'UserController@destroy');
     Route::post('user/process', 'UserController@addActiveProcess');
 
     // Processes section
     Route::get('processes', 'ProcessController@getAll');
     Route::post('process', 'ProcessController@create');
+    Route::get('process/{processId}', 'ProcessController@getOne');
     Route::patch('process', 'ProcessController@update');
     Route::delete('process/{id}', 'ProcessController@destroy');
     Route::get('processes/user/{userId}', 'UserController@getActiveProcesses');
@@ -55,6 +57,7 @@ Route::group([
     Route::post('process/steps', 'ProcessController@addSteps');
     Route::patch('step', 'StepController@updateOne');
     Route::delete('step/{id}', 'StepController@deleteOne');
+    Route::get('process/{processId}/student/steps', 'ProcessController@getStudentSteps');
 
     // Careers section
     Route::post('career', 'CareerController@create');

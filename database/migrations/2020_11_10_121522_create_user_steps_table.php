@@ -17,7 +17,7 @@ class CreateUserStepsTable extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained('users');
             $table->foreignId('step_id')->constrained('steps');
-            $table->longText('text-content')->nullable();
+            $table->longText('text_content')->nullable();
             $table->string('file_url')->nullable();
             $table->string('file_name')->nullable();
             $table->integer('status');

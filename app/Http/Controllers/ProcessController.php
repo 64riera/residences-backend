@@ -4,17 +4,20 @@ namespace App\Http\Controllers;
 
 use App\Models\Process;
 use App\Models\Step;
+use App\Models\UserStep;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use stdClass;
 
 class ProcessController extends Controller
 {
 
     /* CONSTANTS */
     const ACTIVE_STATUS = 1;
+    const DONE_STATUS = 3;
 
     /**
      * Get all the processes storaged
@@ -75,6 +78,11 @@ class ProcessController extends Controller
                 'id',
                 'DESC'
             )->get();
+
+            foreach ($processes as $process) {
+                $process->is_editing = false;
+            }
+
         } catch (Exception $e) {
             return response()->json([
                 'code' => Config::get('constants.responses.INTERNAL_SERVER_ERROR_CODE'),
@@ -87,6 +95,25 @@ class ProcessController extends Controller
             'code' => Config::get('constants.responses.SUCCESS_CODE'),
             'message' => Config::get('constants.responses.SUCCESS_MESSAGE'),
             'data' => $processes
+        ], Config::get('constants.responses.SUCCESS_CODE'));
+    }
+
+    public function getOne($processId)
+    {
+        try {
+            $process = Process::find($processId);
+        } catch (Exception $e) {
+            return response()->json([
+                'code' => Config::get('constants.responses.INTERNAL_SERVER_ERROR_CODE'),
+                'message' => Config::get('constants.responses.FAIL_MESSAGE'),
+                'data' => $e->getMessage()
+            ], Config::get('constants.responses.INTERNAL_SERVER_ERROR_CODE'));
+        }
+
+        return response()->json([
+            'code' => Config::get('constants.responses.SUCCESS_CODE'),
+            'message' => Config::get('constants.responses.SUCCESS_MESSAGE'),
+            'data' => $process
         ], Config::get('constants.responses.SUCCESS_CODE'));
     }
 
@@ -146,7 +173,7 @@ class ProcessController extends Controller
             'name' => 'string|min:1',
             'description' => 'string|min:1',
             'forEveryone' => 'boolean',
-            'isActive' => 'boolean'
+            'isActive' => 'required|boolean'
         ]);
 
         try {
@@ -154,7 +181,7 @@ class ProcessController extends Controller
             $process->name = $request->name ? $request->name : $process->name;
             $process->description = $request->description ? $request->description : $process->description;
             $process->for_everyone = $request->forEveryone ? $request->forEveryone : $process->for_everyone;
-            $process->is_active = $request->isActive ? $request->isActive : $process->is_active;
+            $process->is_active = $request->isActive;
             $process->save();
         } catch(Exception $e) {
             return response()->json([
@@ -310,6 +337,102 @@ class ProcessController extends Controller
             'code' => Config::get('constants.responses.SUCCESS_CODE'),
             'message' => Config::get('constants.responses.SUCCESS_MESSAGE'),
             'data' => $steps
+        ], Config::get('constants.responses.SUCCESS_CODE'));
+    }
+
+        /**
+     * Get steps to a specified process
+     *
+     * @param  Integer  $processId
+     * @return \Illuminate\Http\Response
+     */
+    public function getStudentSteps(Request $request, $processId)
+    {
+        $validator = Validator::make(['processId' => $processId], [
+            'processId' => 'required|integer|min:1|exists:processes,id'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => Config::get('constants.responses.FAIL_CODE'),
+                'message' => Config::get('constants.responses.FAIL_MESSAGE'),
+                'data' => $validator->errors()
+            ], Config::get('constants.responses.FAIL_CODE'));
+        }
+
+        try {
+            $steps = Step::where(
+                'process_id',
+                $processId
+            )->orderBy(
+                'order',
+                'ASC'
+            )->get();
+
+            $totalStepsOfProcessCount = Step::where(
+                'process_id',
+                $processId
+            )->orderBy(
+                'order',
+                'ASC'
+            )->count();
+
+            $idStepsOfProcess = Step::where(
+                'process_id',
+                $processId
+            )->orderBy(
+                'order',
+                'ASC'
+            )->pluck('id');
+
+            $totalDoneUserStepsCount = UserStep::where(
+                'user_id',
+                $request->user()->id
+            )->whereIn(
+                'step_id',
+                $idStepsOfProcess
+            )->where(
+                'status',
+                self::DONE_STATUS
+            )->count();
+
+            $firstPendient = false;
+            foreach ($steps as $step) {
+                $tmpDoneStep = UserStep::where(
+                    'user_id',
+                    $request->user()->id
+                )->where(
+                    'step_id',
+                    $step->id
+                )->first();
+
+                $step->currentProgress = $tmpDoneStep;
+                if (empty($tmpDoneStep) && !$firstPendient) {
+                    $step->blocked = false;
+                    $firstPendient = true; 
+                } else {
+                    $step->blocked = true;
+                }
+            }
+
+            $finalBody = new stdClass;
+            $finalBody->steps = $steps;
+            $finalBody->totalStepsOfProcess = $totalStepsOfProcessCount;
+            $finalBody->doneStepsCount = $totalDoneUserStepsCount;
+            $finalBody->percentageOfProgress = $totalStepsOfProcessCount > 0 && $totalDoneUserStepsCount > 0 ? ceil(($totalDoneUserStepsCount * 100) / $totalStepsOfProcessCount) : 0; 
+
+        } catch(Exception $e) {
+            return response()->json([
+                'code' => Config::get('constants.responses.INTERNAL_SERVER_ERROR_CODE'),
+                'message' => Config::get('constants.responses.FAIL_MESSAGE'),
+                'data' => $e->getMessage()
+            ], Config::get('constants.responses.INTERNAL_SERVER_ERROR_CODE'));
+        }
+
+        return response()->json([
+            'code' => Config::get('constants.responses.SUCCESS_CODE'),
+            'message' => Config::get('constants.responses.SUCCESS_MESSAGE'),
+            'data' => $finalBody
         ], Config::get('constants.responses.SUCCESS_CODE'));
     }
 }
